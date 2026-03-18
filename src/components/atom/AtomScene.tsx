@@ -181,7 +181,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
 
     if (!showScene) return null
 
-    const frameSrc = `/startanimation/${frame + frameOffset}.png`
+    const frameSrc = `${import.meta.env.BASE_URL}startanimation/${frame + frameOffset}.png`
 
     return (
         <>

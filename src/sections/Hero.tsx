@@ -178,7 +178,7 @@ export default function Hero({ theme, onToggleTheme, onRocketClick }: HeroProps)
                 }}
             >
                 <motion.img
-                    src={isDark ? '/NaveBlanca.png' : '/NaveNegra.png'}
+                    src={isDark ? `${import.meta.env.BASE_URL}NaveBlanca.png` : `${import.meta.env.BASE_URL}NaveNegra.png`}
                     alt="Rocket"
                     onClick={(e) => { e.stopPropagation(); onRocketClick() }}
                     style={{
