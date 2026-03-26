@@ -73,7 +73,6 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
     const [phase, setPhase] = useState<Phase>('filling')
     const [animState, setAnimState] = useState<AnimState>('idle')
     const [frame, setFrame] = useState(1)
-    // showScene controls whether we render anything at all
     const [showScene, setShowScene] = useState(true)
 
     const spheres = useMemo(() => generateUniverse(), [])
@@ -105,7 +104,6 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                 setAnimState('finished')
                 onIntroComplete?.()
                 onReplayDone?.()
-                // Hide the entire scene after a short delay
                 setTimeout(() => setShowScene(false), 400)
                 return
             }
@@ -145,6 +143,14 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
             startFrameAnimation()
         }
     }
+
+    // Preload all frames while spheres are animating
+    useEffect(() => {
+        for (let i = 1; i <= TOTAL_FRAMES; i++) {
+            const img = new Image()
+            img.src = `${import.meta.env.BASE_URL}startanimation/${i + frameOffset}.png`
+        }
+    }, [frameOffset])
 
     useEffect(() => {
         startSequence()
@@ -188,9 +194,11 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
             <div
                 className="fixed inset-0 overflow-hidden"
                 style={{
-                    background: animState === 'playing' ? bgColor : bgColor,
+                    background: bgColor,
                     zIndex: 10,
-                    pointerEvents: 'auto' as const,
+                    pointerEvents: 'auto',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
                 }}
             >
                 {/* Spheres */}
@@ -228,7 +236,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                     {animState === 'playing' && (
                         <motion.div
                             className="absolute inset-0"
-                            style={{ zIndex: 40, pointerEvents: 'auto' as const }}
+                            style={{ zIndex: 40, pointerEvents: 'auto' }}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -244,7 +252,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                                     objectFit: 'cover',
                                     userSelect: 'none',
                                     display: 'block',
-                                    pointerEvents: 'none' as const,
+                                    pointerEvents: 'none',
                                 }}
                                 draggable={false}
                             />
@@ -278,7 +286,9 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                             letterSpacing: '0.1em',
                             cursor: 'pointer',
                             fontFamily: 'inherit',
-                            textTransform: 'uppercase' as const,
+                            textTransform: 'uppercase',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
                         }}
                     >
                         skip →

@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { AtomScene } from './components/atom/AtomScene'
 import { useTheme } from './hooks/useTheme'
 import Hero from './sections/Hero'
-import About from './sections/about'
+import About from './sections/About'
 import Projects from './sections/Projects'
-import TechStack from './sections/TechStack'
 import Contact from './sections/Contact'
 
 export default function App() {
@@ -15,7 +14,10 @@ export default function App() {
   const isDark = theme === 'dark'
 
   return (
-    <>
+    <div style={{
+      backgroundColor: isDark ? '#000000' : '#ffffff',
+      minHeight: '100vh',
+    }}>
       <AtomScene
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -23,6 +25,7 @@ export default function App() {
         triggerReplay={replayAnimation}
         onReplayDone={() => setReplayAnimation(false)}
       />
+
       {introComplete && (
         <main
           style={{
@@ -40,10 +43,9 @@ export default function App() {
           />
           <About theme={theme} />
           <Projects />
-          <TechStack />
           <Contact />
         </main>
       )}
-    </>
+    </div>
   )
 }
