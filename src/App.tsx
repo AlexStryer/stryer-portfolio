@@ -42,7 +42,7 @@ export default function App() {
             onRocketClick={() => setReplayAnimation(true)}
           />
           <About theme={theme} />
-          <Projects />
+          <Projects theme={theme} />
           <Contact />
         </main>
       )}
