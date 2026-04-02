@@ -54,17 +54,17 @@ function pal(isDark: boolean) {
 
 const PROJECTS: Project[] = [
     {
-        title: 'Flash Point: Simpsons Edition',
+        title: 'Banu Software Agency',
         summary:
-            'A Simpsons-themed adaptation of Flash Point with real-time gameplay playback using a Python simulation layer and a Unity visualization client.',
+            'Co-founded a web development agency focused on digitizing local companies. Delivered production websites from Figma handoff to deployment.',
         details: [
-            'Designed a Python server producing JSON game state updates and event logs per turn',
-            'Implemented Unity C# scripts that parse JSON frames into live animations',
-            'Built a presentation-focused experience with custom assets and intro animations',
-            'Structured gameplay logic to keep state deterministic and replayable across runs',
+            'Built and shipped React, TypeScript, Tailwind websites for local businesses',
+            'Owned client discovery and delivery workflow with clear technical scope',
+            'Managed SEO improvements, positioning, and lead generation for clients',
         ],
-        stack: ['Unity', 'Python', 'C#'],
-        image: 'project-flashpoint.png',
+        stack: ['React', 'TypeScript', 'Tailwind'],
+        image: 'project-banu.png',
+        link: 'https://banu.com.mx',
     },
     {
         title: 'Excalibur CRM',
@@ -92,7 +92,7 @@ const PROJECTS: Project[] = [
         image: 'project-habitree.png',
     },
     {
-        title: 'Social Flash CRM',
+        title: 'Leadly',
         summary:
             'A CRM web application for client lead management, used by local businesses to organize customer information and track leads.',
         details: [
@@ -104,17 +104,30 @@ const PROJECTS: Project[] = [
         image: 'project-socialflash.png',
     },
     {
-        title: 'Banu Software Agency',
+        title: 'Dehesa San Isidro',
         summary:
-            'Co-founded a web development agency focused on digitizing local companies. Delivered production websites from Figma handoff to deployment.',
+            'A deployed branded landing page/site. A lot of the discussion around this one involved GitHub Pages, domains, DNS, HTTPS, and deployment issues.',
         details: [
-            'Built and shipped React, TypeScript, Tailwind websites for local businesses',
-            'Owned client discovery and delivery workflow with clear technical scope',
-            'Managed SEO improvements, positioning, and lead generation for clients',
+            'Built and deployed a branded site using React, TypeScript, and Tailwind',
+            'Configured GitHub Pages with custom domain, DNS records, and HTTPS',
+            'Set up GitHub Actions for automated CI/CD deployment pipeline',
+            'Resolved cross-browser and mobile-responsive layout issues',
         ],
-        stack: ['React', 'TypeScript', 'Tailwind'],
-        image: 'project-banu.png',
-        link: 'https://banu.com.mx',
+        stack: ['React', 'TypeScript', 'Tailwind', 'GitHub Pages', 'GitHub Actions'],
+        image: 'project-dis.png',
+    },
+    {
+        title: 'Flash Point: Simpsons Edition',
+        summary:
+            'A Simpsons-themed adaptation of Flash Point with real-time gameplay playback using a Python simulation layer and a Unity visualization client.',
+        details: [
+            'Designed a Python server producing JSON game state updates and event logs per turn',
+            'Implemented Unity C# scripts that parse JSON frames into live animations',
+            'Built a presentation-focused experience with custom assets and intro animations',
+            'Structured gameplay logic to keep state deterministic and replayable across runs',
+        ],
+        stack: ['Unity', 'Python', 'C#'],
+        image: 'project-flashpoint.png',
     },
 ]
 
@@ -173,6 +186,7 @@ function ProjectCard({
     isMobile,
     expandedIndex,
     setExpandedIndex,
+    onHoverChange,
 }: {
     project: Project
     projectIndex: number
@@ -182,6 +196,7 @@ function ProjectCard({
     isMobile: boolean
     expandedIndex: number | null
     setExpandedIndex: (v: number | null) => void
+    onHoverChange: (hovering: boolean) => void
 }) {
     const p = pal(isDark)
     const isFront = depth === 0
@@ -192,6 +207,8 @@ function ProjectCard({
         <motion.div
             animate={{ x: pos.x, y: pos.y, scale: pos.scale, opacity: pos.opacity }}
             transition={{ duration: 0.65, ease: CARD_EASE }}
+            onMouseEnter={isFront ? () => onHoverChange(true) : undefined}
+            onMouseLeave={isFront ? () => onHoverChange(false) : undefined}
             style={{
                 position: 'absolute',
                 inset: 0,
@@ -430,12 +447,12 @@ function ProjectCard({
 /**
  * The card deck container. Manages:
  * - Card ordering (which card is on top)
- * - Scroll/swipe/keyboard interception when deck is centered
+ * - Scroll/swipe/keyboard interception when hovering over the card stack
  * - Progress dots for direct navigation
  */
 function CardDeck({ isDark }: { isDark: boolean }) {
     const p = pal(isDark)
-    const deckRef = useRef<HTMLDivElement>(null)
+    const cardStackRef = useRef<HTMLDivElement>(null)
     const isMobile = useIsMobile()
 
     // order[0] = front card index
@@ -448,39 +465,8 @@ function CardDeck({ isDark }: { isDark: boolean }) {
     const cycleRef = useRef(0)
     const lastWheelTime = useRef(0)
 
-    // Dwell timer — only lock scroll after deck has been centered for 300ms
-    const centeredSince = useRef<number | null>(null)
-    const DWELL_MS = 300
-
-    /** Checks whether the deck is roughly centered in the viewport. */
-    const checkCentered = useCallback(() => {
-        const el = deckRef.current
-        if (!el) return false
-        const rect = el.getBoundingClientRect()
-        const viewCenter = window.innerHeight / 2
-        if (rect.top > viewCenter || rect.bottom < viewCenter) return false
-        const deckCenter = rect.top + rect.height / 2
-        return Math.abs(deckCenter - viewCenter) < 150
-    }, [])
-
-    useEffect(() => {
-        let raf: number
-        const tick = () => {
-            if (checkCentered()) {
-                if (centeredSince.current === null) centeredSince.current = Date.now()
-            } else {
-                centeredSince.current = null
-            }
-            raf = requestAnimationFrame(tick)
-        }
-        raf = requestAnimationFrame(tick)
-        return () => cancelAnimationFrame(raf)
-    }, [checkCentered])
-
-    const shouldLock = useCallback(() => {
-        if (centeredSince.current === null) return false
-        return Date.now() - centeredSince.current >= DWELL_MS
-    }, [])
+    // Hover tracking — only intercept scroll when mouse is over the card stack
+    const isHovering = useRef(false)
 
     const getDepth = useCallback(
         (projectIndex: number) => order.indexOf(projectIndex),
@@ -512,7 +498,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
         setOrder((prev) => [...prev.slice(1), prev[0]])
         cycleRef.current += 1
 
-        setTimeout(() => { setMovingCard(null); busy.current = false }, 680)
+        setTimeout(() => { setMovingCard(null); busy.current = false }, 450)
     }, [order])
 
     /** Bring the back card to the front of the stack. */
@@ -527,7 +513,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
         setOrder((prev) => [prev[prev.length - 1], ...prev.slice(0, -1)])
         cycleRef.current -= 1
 
-        setTimeout(() => { setMovingCard(null); busy.current = false }, 680)
+        setTimeout(() => { setMovingCard(null); busy.current = false }, 450)
     }, [order])
 
     /** Navigate to a specific card by chaining forward/backward cycles. */
@@ -539,7 +525,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
             const targetCycle = targetIndex
             const step = (fn: () => void, remaining: number) => {
                 if (remaining <= 0) return
-                setTimeout(() => { fn(); step(fn, remaining - 1) }, 700)
+                setTimeout(() => { fn(); step(fn, remaining - 1) }, 480)
             }
 
             if (targetCycle > currentCycle) {
@@ -555,10 +541,10 @@ function CardDeck({ isDark }: { isDark: boolean }) {
 
     // ── Input handlers ────────────────────────────────────────────
 
-    /** Scroll wheel — intercepts when deck is centered and dwelled. */
+    /** Scroll wheel — only intercepts when mouse is hovering over the card stack. */
     useEffect(() => {
         const onWheel = (e: WheelEvent) => {
-            if (!shouldLock()) return
+            if (!isHovering.current) return
             const down = e.deltaY > 0
             const up = e.deltaY < 0
             if (down && cycleRef.current >= COUNT - 1) return
@@ -566,7 +552,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
             e.preventDefault()
 
             const now = Date.now()
-            if (now - lastWheelTime.current < 700 || Math.abs(e.deltaY) < 20) return
+            if (now - lastWheelTime.current < 400 || Math.abs(e.deltaY) < 8) return
             lastWheelTime.current = now
 
             if (down) cycleForward()
@@ -574,12 +560,12 @@ function CardDeck({ isDark }: { isDark: boolean }) {
         }
         window.addEventListener('wheel', onWheel, { passive: false })
         return () => window.removeEventListener('wheel', onWheel)
-    }, [cycleForward, cycleBackward, shouldLock])
+    }, [cycleForward, cycleBackward])
 
-    /** Arrow keys. */
+    /** Arrow keys — only when hovering. */
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (!shouldLock()) return
+            if (!isHovering.current) return
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                 e.preventDefault(); cycleForward()
             } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
@@ -588,16 +574,36 @@ function CardDeck({ isDark }: { isDark: boolean }) {
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [cycleForward, cycleBackward, shouldLock])
+    }, [cycleForward, cycleBackward])
 
-    /** Touch swipe. */
+    /** Touch swipe — supports vertical and horizontal swipes on the card area. */
     const touchStartY = useRef(0)
+    const touchStartX = useRef(0)
+    const touchInsideDeck = useRef(false)
+
     useEffect(() => {
-        const onStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
+        const stack = cardStackRef.current
+        if (!stack) return
+
+        const onStart = (e: TouchEvent) => {
+            const touch = e.touches[0]
+            const rect = stack.getBoundingClientRect()
+            touchInsideDeck.current =
+                touch.clientX >= rect.left &&
+                touch.clientX <= rect.right &&
+                touch.clientY >= rect.top &&
+                touch.clientY <= rect.bottom
+            touchStartY.current = touch.clientY
+            touchStartX.current = touch.clientX
+        }
         const onEnd = (e: TouchEvent) => {
-            if (!shouldLock()) return
-            const diff = touchStartY.current - e.changedTouches[0].clientY
-            if (Math.abs(diff) < 50) return
+            if (!touchInsideDeck.current) return
+            const diffY = touchStartY.current - e.changedTouches[0].clientY
+            const diffX = touchStartX.current - e.changedTouches[0].clientX
+            // Use whichever axis had more movement
+            const useX = Math.abs(diffX) > Math.abs(diffY)
+            const diff = useX ? diffX : diffY
+            if (Math.abs(diff) < 30) return
             if (diff > 0 && cycleRef.current < COUNT - 1) cycleForward()
             else if (diff < 0 && cycleRef.current > 0) cycleBackward()
         }
@@ -607,7 +613,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
             window.removeEventListener('touchstart', onStart)
             window.removeEventListener('touchend', onEnd)
         }
-    }, [cycleForward, cycleBackward, shouldLock])
+    }, [cycleForward, cycleBackward])
 
     const stackX = isMobile ? STACK_X_MOBILE : STACK_X_DESKTOP
     const stackY = isMobile ? STACK_Y_MOBILE : STACK_Y_DESKTOP
@@ -667,38 +673,10 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                         Selected work
                     </h2>
                 </div>
-
-                {/* See all CTA */}
-                <button
-                    style={{
-                        fontSize: 12, letterSpacing: '0.04em',
-                        color: p.blue,
-                        fontFamily: '"DM Sans", sans-serif', fontWeight: 500,
-                        padding: isMobile ? '8px 18px' : '10px 24px',
-                        borderRadius: 999,
-                        background: p.btnBg,
-                        border: `1px solid ${p.btnBorder}`,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s',
-                        marginBottom: 4,
-                        display: 'flex', alignItems: 'center', gap: 8,
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = p.btnHover
-                        e.currentTarget.style.boxShadow = `0 0 20px ${p.blueGlow}`
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = p.btnBg
-                        e.currentTarget.style.boxShadow = 'none'
-                    }}
-                >
-                    See all projects <span style={{ fontSize: 14 }}>→</span>
-                </button>
             </div>
 
             {/* ── Card deck area ── */}
             <div
-                ref={deckRef}
                 style={{
                     flex: 1,
                     display: 'flex',
@@ -712,26 +690,33 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                     minHeight: isMobile ? 'clamp(380px, 56vh, 480px)' : 'clamp(440px, 52vh, 580px)',
                 }}
             >
-                <div style={{
-                    position: 'relative',
-                    width: isMobile ? 'min(94vw, 400px)' : 'min(84vw, 920px)',
-                    height: isMobile ? 'clamp(340px, 50vh, 440px)' : 'clamp(340px, 36vw, 440px)',
-                    marginRight: isMobile ? COUNT * stackX + 8 : COUNT * stackX + 20,
-                    marginTop: isMobile ? COUNT * Math.abs(stackY) + 8 : COUNT * Math.abs(stackY) + 20,
-                }}>
-                    {PROJECTS.map((project, projectIndex) => (
-                        <ProjectCard
-                            key={`card-${projectIndex}`}
-                            project={project}
-                            projectIndex={projectIndex}
-                            depth={getDepth(projectIndex)}
-                            zIndex={getZIndex(projectIndex)}
-                            isDark={isDark}
-                            isMobile={isMobile}
-                            expandedIndex={expandedIndex}
-                            setExpandedIndex={setExpandedIndex}
-                        />
-                    ))}
+                {/* Hover zone — wraps the card stack + its offset margins */}
+                <div
+                    ref={cardStackRef}
+                    style={{ position: 'relative' }}
+                >
+                    <div style={{
+                        position: 'relative',
+                        width: isMobile ? 'min(94vw, 400px)' : 'min(84vw, 920px)',
+                        height: isMobile ? 'clamp(340px, 50vh, 440px)' : 'clamp(340px, 36vw, 440px)',
+                        marginRight: isMobile ? 0 : COUNT * stackX + 20,
+                        marginTop: isMobile ? COUNT * Math.abs(stackY) + 8 : COUNT * Math.abs(stackY) + 20,
+                    }}>
+                        {PROJECTS.map((project, projectIndex) => (
+                            <ProjectCard
+                                key={`card-${projectIndex}`}
+                                project={project}
+                                projectIndex={projectIndex}
+                                depth={getDepth(projectIndex)}
+                                zIndex={getZIndex(projectIndex)}
+                                isDark={isDark}
+                                isMobile={isMobile}
+                                expandedIndex={expandedIndex}
+                                setExpandedIndex={setExpandedIndex}
+                                onHoverChange={(h) => { isHovering.current = h }}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -741,7 +726,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                 bottom: isMobile ? 'clamp(12px, 2vh, 20px)' : 'clamp(16px, 2.5vh, 28px)',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                display: 'flex', gap: 8, alignItems: 'center',
+                display: 'flex', gap: isMobile ? 4 : 8, alignItems: 'center',
             }}>
                 {PROJECTS.map((_, i) => {
                     const isActive = order[0] === i
@@ -751,15 +736,17 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                             onClick={() => goToCard(i)}
                             aria-label={`Go to project ${i + 1}`}
                             style={{
-                                width: isActive ? 24 : 6,
-                                height: 6,
-                                borderRadius: 3,
+                                width: isActive ? (isMobile ? 28 : 24) : (isMobile ? 10 : 6),
+                                height: isMobile ? 10 : 6,
+                                borderRadius: isMobile ? 5 : 3,
                                 background: isActive ? p.blue : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
                                 transition: 'all 0.4s',
                                 cursor: 'pointer',
                                 border: 'none',
-                                padding: 0,
+                                padding: isMobile ? '10px 0' : 0,
+                                boxSizing: 'content-box',
                                 outline: 'none',
+                                WebkitTapHighlightColor: 'transparent',
                             }}
                         />
                     )

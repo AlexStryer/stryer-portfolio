@@ -97,8 +97,11 @@ export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
 
     const scrollTo = useCallback((id: string) => {
         setMobileOpen(false)
-        if (id === 'hero') { window.scrollTo({ top: 0, behavior: 'smooth' }) }
-        else { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }) }
+        if (id === 'hero') {
+            document.getElementById('top')?.scrollIntoView({ behavior: 'smooth' })
+        } else {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+        }
     }, [])
 
     return (
