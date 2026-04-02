@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Theme } from '../../hooks/useTheme'
+import { pal } from '../../utils/palette'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface AtomSceneProps {
     theme: Theme
@@ -20,14 +23,37 @@ interface Sphere {
     dy: number
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const TOTAL_FRAMES = 112
+const FPS = 30
+const FILL_DURATION = 5000      // Sphere fill phase
+const REVERSE_DURATION = FILL_DURATION / 2
+const MOBILE_BREAKPOINT = 768
+
+type Phase = 'filling' | 'frozen' | 'reversing' | 'done'
+type AnimState = 'idle' | 'playing' | 'finished'
+
+// ── Universe generation ───────────────────────────────────────────────────────
+
+/** Generate all sphere positions, sizes, and timing delays. */
 function generateUniverse(): Sphere[] {
     const raw: { x: number; y: number; size: number; delay: number }[] = []
+
+    // First atom — center, small, appears immediately
     raw.push({ x: 50, y: 50, size: 14, delay: 0 })
 
     const screenArea = window.innerWidth * window.innerHeight
     const baseArea = 1920 * 1080
     const scaleFactor = Math.max(1, screenArea / baseArea)
-    const TOTAL = Math.ceil(1200 * scaleFactor)
+    const isMobileGen = window.innerWidth < 768
+
+    // Fewer spheres on mobile for smooth performance
+    const BASE_COUNT = isMobileGen ? 600 : 1200
+    const TOTAL = Math.ceil(BASE_COUNT * scaleFactor)
+
+    // Scale factor to fit original 9.5s timing into current FILL_DURATION
+    const timeScale = FILL_DURATION / 9500
 
     for (let i = 1; i < TOTAL; i++) {
         const progress = i / TOTAL
@@ -39,12 +65,12 @@ function generateUniverse(): Sphere[] {
         } else {
             delay = 7.3 + ((progress - 0.3) / 0.7) * 2.0
         }
-        delay += (Math.random() - 0.5) * 0.3
+        delay = delay * timeScale + (Math.random() - 0.5) * 0.2
 
         const x = Math.random() * 116 - 8
         const y = Math.random() * 116 - 8
-        const minSize = 60 * Math.sqrt(scaleFactor)
-        const maxSize = 220 * Math.sqrt(scaleFactor)
+        const minSize = isMobileGen ? 80 : 60 * Math.sqrt(scaleFactor)
+        const maxSize = isMobileGen ? 260 : 220 * Math.sqrt(scaleFactor)
         raw.push({ x, y, size: minSize + Math.random() * (maxSize - minSize), delay })
     }
 
@@ -57,15 +83,19 @@ function generateUniverse(): Sphere[] {
     })
 }
 
-type Phase = 'filling' | 'frozen' | 'reversing' | 'done'
-type AnimState = 'idle' | 'playing' | 'finished'
+// ── Component ─────────────────────────────────────────────────────────────────
 
-const TOTAL_FRAMES = 112
-const FPS = 30
-
+/**
+ * Intro animation scene:
+ * 1. Spheres fill the screen outward from center (blue accent on the first atom)
+ * 2. Spheres freeze, then reverse-implode back to center
+ * 3. Frame-by-frame spaceship animation plays (pans right on mobile)
+ * 4. Scene fades out, main site is revealed
+ */
 export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay, onReplayDone }: AtomSceneProps) {
     const isDark = theme === 'dark'
-    const bgColor = isDark ? '#000000' : '#ffffff'
+    const p = pal(isDark)
+    const bgColor = p.bg
     const sphereColor = isDark ? '#ffffff' : '#000000'
     const frameOffset = isDark ? 114 : 0
 
@@ -74,13 +104,21 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
     const [animState, setAnimState] = useState<AnimState>('idle')
     const [frame, setFrame] = useState(1)
     const [showScene, setShowScene] = useState(true)
+    const [isMobile, setIsMobile] = useState(false)
 
     const spheres = useMemo(() => generateUniverse(), [])
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     const frameTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
-    const fillDuration = 9500
-    const reverseDuration = fillDuration / 2
+    // ── Mobile detection ──────────────────────────────────────────
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+        check()
+        window.addEventListener('resize', check)
+        return () => window.removeEventListener('resize', check)
+    }, [])
+
+    // ── Timer helpers ─────────────────────────────────────────────
 
     function clearAllTimers() {
         timers.current.forEach(clearTimeout)
@@ -119,13 +157,13 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
         setVisible(false)
         setShowScene(true)
 
-        const t1 = setTimeout(() => setVisible(true), 500)
-        const t2 = setTimeout(() => setPhase('frozen'), 500 + fillDuration + 300)
-        const t3 = setTimeout(() => setPhase('reversing'), 500 + fillDuration + 300 + 100)
+        const t1 = setTimeout(() => setVisible(true), 400)
+        const t2 = setTimeout(() => setPhase('frozen'), 400 + FILL_DURATION + 100)
+        const t3 = setTimeout(() => setPhase('reversing'), 400 + FILL_DURATION + 150)
         const t4 = setTimeout(() => {
             setPhase('done')
             startFrameAnimation()
-        }, 500 + fillDuration + 300 + 100 + reverseDuration + 800)
+        }, 400 + FILL_DURATION + 150 + REVERSE_DURATION + 400)
         timers.current = [t1, t2, t3, t4]
     }
 
@@ -144,7 +182,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
         }
     }
 
-    // Preload all frames while spheres are animating
+    // ── Preload frames ────────────────────────────────────────────
     useEffect(() => {
         for (let i = 1; i <= TOTAL_FRAMES; i++) {
             const img = new Image()
@@ -152,17 +190,18 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
         }
     }, [frameOffset])
 
+    // ── Start on mount ────────────────────────────────────────────
     useEffect(() => {
         startSequence()
         return () => clearAllTimers()
     }, [])
 
+    // ── Replay trigger ────────────────────────────────────────────
     useEffect(() => {
-        if (triggerReplay) {
-            startFrameAnimation()
-        }
+        if (triggerReplay) startFrameAnimation()
     }, [triggerReplay])
 
+    // ── Inject sphere keyframes ───────────────────────────────────
     useEffect(() => {
         const style = document.createElement('style')
         style.id = 'sphere-keyframes'
@@ -172,13 +211,20 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                 60%  { opacity: 1; }
                 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
             }
-            .sphere-filling { animation: sphereIn 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) both; }
-            .sphere-frozen { animation: none; transform: translate(-50%, -50%) scale(1); }
+            .sphere-filling {
+                animation: sphereIn 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+                will-change: transform, opacity;
+            }
+            .sphere-frozen {
+                animation: none;
+                transform: translate(-50%, -50%) scale(1);
+            }
             .sphere-reversing {
                 animation: none;
                 transition-property: transform, opacity;
                 transition-timing-function: cubic-bezier(0.4, 0, 0.8, 1);
                 transition-duration: 0.8s, 0.5s;
+                will-change: transform, opacity;
             }
         `
         document.head.appendChild(style)
@@ -186,6 +232,12 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
     }, [])
 
     if (!showScene) return null
+
+    // ── Frame animation pan (mobile only) ─────────────────────────
+    // Mobile pan: follow the ship as it drifts right across each frame.
+    // Linear pan over the full animation duration — no clamping.
+    const frameProgress = (frame - 1) / (TOTAL_FRAMES - 1)
+    const objectPosX = isMobile ? 50 + frameProgress * 50 : 50  // 50% → 100% tracking the ship
 
     const frameSrc = `${import.meta.env.BASE_URL}startanimation/${frame + frameOffset}.png`
 
@@ -201,7 +253,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                     WebkitUserSelect: 'none',
                 }}
             >
-                {/* Spheres */}
+                {/* ── Spheres ── */}
                 {visible && phase !== 'done' && spheres.map((s, i) => {
                     let className = ''
                     let style: React.CSSProperties = {
@@ -231,7 +283,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                     return <div key={i} className={className} style={style} />
                 })}
 
-                {/* Frame animation */}
+                {/* ── Frame animation ── */}
                 <AnimatePresence>
                     {animState === 'playing' && (
                         <motion.div
@@ -250,6 +302,7 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                                     width: '100vw',
                                     height: '100vh',
                                     objectFit: 'cover',
+                                    objectPosition: `${objectPosX}% center`,
                                     userSelect: 'none',
                                     display: 'block',
                                     pointerEvents: 'none',
@@ -261,34 +314,43 @@ export function AtomScene({ theme, onToggleTheme, onIntroComplete, triggerReplay
                 </AnimatePresence>
             </div>
 
-            {/* Skip button */}
+            {/* ── Skip button ── */}
             <AnimatePresence>
                 {(animState === 'idle' || animState === 'playing') && (
                     <motion.button
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ delay: 1.5, duration: 0.5 }}
+                        transition={{ delay: 1.2, duration: 0.5 }}
                         onClick={(e) => { e.stopPropagation(); skipToEnd() }}
                         style={{
                             position: 'fixed',
                             bottom: 36,
                             right: 36,
                             zIndex: 9999,
-                            background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                            background: p.blueFaint,
                             backdropFilter: 'blur(8px)',
-                            border: `1px solid ${isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'}`,
-                            color: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
+                            border: `1px solid ${isDark ? p.line : p.rule}`,
+                            color: p.mid,
                             padding: '10px 24px',
                             borderRadius: 999,
                             fontSize: 13,
                             fontWeight: 500,
                             letterSpacing: '0.1em',
                             cursor: 'pointer',
-                            fontFamily: 'inherit',
+                            fontFamily: '"DM Sans", sans-serif',
                             textTransform: 'uppercase',
                             userSelect: 'none',
                             WebkitUserSelect: 'none',
+                            transition: 'color 0.3s ease, background 0.3s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.color = p.blue
+                            e.currentTarget.style.background = isDark ? 'rgba(96,165,250,0.12)' : 'rgba(37,99,235,0.1)'
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.color = p.mid
+                            e.currentTarget.style.background = p.blueFaint
                         }}
                     >
                         skip →
