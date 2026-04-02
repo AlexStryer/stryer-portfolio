@@ -108,6 +108,7 @@ const PROJECTS: Project[] = [
         stack: ['Django', 'SQLite', 'HTMX', 'JavaScript'],
         image: 'project-socialflash.png',
         background: 'background-leadly.png',
+        link: 'https://www.youtube.com/watch?v=El6W1U5jBuI',
     },
     {
         title: 'Dehesa San Isidro',
