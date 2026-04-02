@@ -26,7 +26,6 @@ const VENTURES = [
         desc: 'Audio, lighting, and DJ rental company. Organizes private events and corporate productions.',
         image: 'about-oasis-panel.png',
         bg: '#000000',
-        aspectRatio: '1440 / 540',
     },
     {
         name: 'Banu',
@@ -34,7 +33,6 @@ const VENTURES = [
         desc: 'Software development agency helping small businesses build an online presence.',
         image: 'about-banu-panel.png',
         bg: '#BF5B6A',
-        aspectRatio: '1440 / 360',
     },
     {
         name: 'QUIO',
@@ -42,7 +40,6 @@ const VENTURES = [
         desc: 'Marketing agency for local companies. Ad campaigns, creative design, branding, and strategy.',
         image: 'about-quio-panel.png',
         bg: '#9db9d0',
-        aspectRatio: '1440 / 180',
     },
 ]
 
@@ -201,6 +198,7 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
     const innerPad = isMobile ? '0 clamp(20px, 4vw, 32px)' : '0 clamp(28px, 4vw, 56px)'
 
     const activePanelTop = activeVenture !== null ? rowTops[activeVenture] ?? 0 : 0
+    const hasOverlay = activeVenture !== null
 
     return (
         <div
@@ -315,6 +313,7 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                                 overflow: 'hidden',
                             }}
                         >
+                            {/* Flood-down image panel: starts at hovered row, fills to bottom */}
                             <AnimatePresence>
                                 {activeVenture !== null && (
                                     <motion.div
@@ -322,7 +321,7 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.2, ease: EASE }}
+                                        transition={{ duration: 0.25, ease: EASE }}
                                         style={{
                                             position: 'absolute',
                                             top: activePanelTop,
@@ -347,7 +346,7 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                                                 display: 'block',
                                             }}
                                             onError={(e) => {
-                                                ; (e.target as HTMLImageElement).style.display = 'none'
+                                                (e.target as HTMLImageElement).style.display = 'none'
                                             }}
                                         />
                                     </motion.div>
@@ -357,13 +356,14 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                             <div style={{ position: 'relative', zIndex: 1 }}>
                                 <SectionLabel
                                     text="Ventures"
-                                    color={p.ent.label}
-                                    lineColor={p.ent.bd}
+                                    color={hasOverlay ? 'rgba(255,255,255,0.5)' : p.ent.label}
+                                    lineColor={hasOverlay ? 'rgba(255,255,255,0.15)' : p.ent.bd}
                                     font='"Playfair Display", Georgia, serif'
                                 />
 
                                 {VENTURES.map((v, i) => {
-                                    const oasisMode = activeVenture === 0
+                                    // Row is covered by image if at or below the active venture
+                                    const isCovered = activeVenture !== null && i >= activeVenture
 
                                     return (
                                         <div
@@ -372,8 +372,8 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                                             onMouseEnter={() => setActiveVenture(i)}
                                             style={{
                                                 padding: '16px 0',
-                                                borderTop: i > 0 ? `1px solid ${p.ent.bd}` : 'none',
-                                                transition: 'border-color 0.4s ease',
+                                                borderTop: i > 0 ? `1px solid ${isCovered ? 'rgba(255,255,255,0.15)' : p.ent.bd}` : 'none',
+                                                transition: 'border-color 0.3s ease',
                                                 cursor: 'pointer',
                                             }}
                                         >
@@ -382,23 +382,23 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                                                     fontSize: 'clamp(16px, 1.4vw, 19px)',
                                                     fontFamily: '"Playfair Display", Georgia, serif',
                                                     fontWeight: 400,
-                                                    color: oasisMode ? '#ffffff' : p.ent.h,
-                                                    transition: 'color 0.4s ease',
+                                                    color: isCovered ? '#ffffff' : p.ent.h,
+                                                    transition: 'color 0.3s ease',
                                                 }}>{v.name}</span>
                                                 <span style={{
                                                     fontSize: 10, letterSpacing: '0.04em',
-                                                    color: oasisMode ? 'rgba(255,255,255,0.72)' : p.ent.dim,
+                                                    color: isCovered ? 'rgba(255,255,255,0.72)' : p.ent.dim,
                                                     fontFamily: '"DM Sans", sans-serif',
                                                     fontWeight: 500, marginLeft: 10,
-                                                    transition: 'color 0.4s ease',
+                                                    transition: 'color 0.3s ease',
                                                 }}>{v.role}</span>
                                             </div>
                                             <p style={{
                                                 fontSize: 13.5, lineHeight: 1.55,
-                                                color: oasisMode ? 'rgba(255,255,255,0.92)' : p.ent.p,
+                                                color: isCovered ? 'rgba(255,255,255,0.92)' : p.ent.p,
                                                 margin: 0, maxWidth: 340,
                                                 fontFamily: '"DM Sans", sans-serif',
-                                                transition: 'color 0.4s ease',
+                                                transition: 'color 0.3s ease',
                                             }}>{v.desc}</p>
                                         </div>
                                     )

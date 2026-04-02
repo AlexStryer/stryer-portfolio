@@ -94,6 +94,7 @@ const PROJECTS: Project[] = [
         stack: ['Swift', 'AWS', 'Figma'],
         image: 'project-habitree.png',
         background: 'background-habitree.png',
+        link: 'https://www.youtube.com/watch?v=80BD0YFcIFU',
     },
     {
         title: 'Leadly',
@@ -121,6 +122,7 @@ const PROJECTS: Project[] = [
         stack: ['React', 'TypeScript', 'Tailwind', 'GitHub Pages', 'GitHub Actions'],
         image: 'project-dis.png',
         background: 'background-dsi.png',
+        link: 'https://dehesasanisidro.com',
     },
     {
         title: 'Flash Point: Simpsons Edition',
@@ -135,6 +137,7 @@ const PROJECTS: Project[] = [
         stack: ['Unity', 'Python', 'C#'],
         image: 'project-flashpoint.png',
         background: 'background-flashpoint.png',
+        link: 'https://canva.link/ijxcsy2se28si5g',
     },
 ]
 
@@ -193,7 +196,6 @@ function ProjectCard({
     isMobile,
     expandedIndex,
     setExpandedIndex,
-    onHoverChange,
 }: {
     project: Project
     projectIndex: number
@@ -203,7 +205,6 @@ function ProjectCard({
     isMobile: boolean
     expandedIndex: number | null
     setExpandedIndex: (v: number | null) => void
-    onHoverChange: (hovering: boolean) => void
 }) {
     const p = pal(isDark)
     const isFront = depth === 0
@@ -214,8 +215,6 @@ function ProjectCard({
         <motion.div
             animate={{ x: pos.x, y: pos.y, scale: pos.scale, opacity: pos.opacity }}
             transition={{ duration: 0.65, ease: CARD_EASE }}
-            onMouseEnter={isFront ? () => onHoverChange(true) : undefined}
-            onMouseLeave={isFront ? () => onHoverChange(false) : undefined}
             style={{
                 position: 'absolute',
                 inset: 0,
@@ -470,9 +469,8 @@ function CardDeck({ isDark }: { isDark: boolean }) {
 
     const busy = useRef(false)
     const cycleRef = useRef(0)
-    const lastWheelTime = useRef(0)
 
-    // Hover tracking — only intercept scroll when mouse is over the card stack
+    // Hover tracking — used for keyboard navigation
     const isHovering = useRef(false)
 
     const getDepth = useCallback(
@@ -495,7 +493,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
 
     /** Send the front card to the back of the stack. */
     const cycleForward = useCallback(() => {
-        if (busy.current || cycleRef.current >= COUNT - 1) return
+        if (busy.current) return
         busy.current = true
         setExpandedIndex(null)
 
@@ -503,14 +501,14 @@ function CardDeck({ isDark }: { isDark: boolean }) {
         setMovingCard(frontCard)
         setMoveDirection('toBack')
         setOrder((prev) => [...prev.slice(1), prev[0]])
-        cycleRef.current += 1
+        cycleRef.current = (cycleRef.current + 1) % COUNT
 
         setTimeout(() => { setMovingCard(null); busy.current = false }, 450)
     }, [order])
 
     /** Bring the back card to the front of the stack. */
     const cycleBackward = useCallback(() => {
-        if (busy.current || cycleRef.current <= 0) return
+        if (busy.current) return
         busy.current = true
         setExpandedIndex(null)
 
@@ -518,56 +516,37 @@ function CardDeck({ isDark }: { isDark: boolean }) {
         setMovingCard(backCard)
         setMoveDirection('toFront')
         setOrder((prev) => [prev[prev.length - 1], ...prev.slice(0, -1)])
-        cycleRef.current -= 1
+        cycleRef.current = (cycleRef.current - 1 + COUNT) % COUNT
 
         setTimeout(() => { setMovingCard(null); busy.current = false }, 450)
     }, [order])
 
-    /** Navigate to a specific card by chaining forward/backward cycles. */
+    /** Navigate to a specific card — takes the shortest path around the loop. */
     const goToCard = useCallback(
         (targetIndex: number) => {
             if (busy.current || order[0] === targetIndex) return
 
-            const currentCycle = cycleRef.current
-            const targetCycle = targetIndex
+            const currentPos = order.indexOf(targetIndex)
+            const stepsForward = currentPos
+            const stepsBackward = COUNT - currentPos
+
             const step = (fn: () => void, remaining: number) => {
                 if (remaining <= 0) return
                 setTimeout(() => { fn(); step(fn, remaining - 1) }, 480)
             }
 
-            if (targetCycle > currentCycle) {
+            if (stepsForward <= stepsBackward) {
                 cycleForward()
-                step(cycleForward, targetCycle - currentCycle - 1)
+                step(cycleForward, stepsForward - 1)
             } else {
                 cycleBackward()
-                step(cycleBackward, currentCycle - targetCycle - 1)
+                step(cycleBackward, stepsBackward - 1)
             }
         },
         [order, cycleForward, cycleBackward],
     )
 
     // ── Input handlers ────────────────────────────────────────────
-
-    /** Scroll wheel — only intercepts when mouse is hovering over the card stack. */
-    useEffect(() => {
-        const onWheel = (e: WheelEvent) => {
-            if (!isHovering.current) return
-            const down = e.deltaY > 0
-            const up = e.deltaY < 0
-            if (down && cycleRef.current >= COUNT - 1) return
-            if (up && cycleRef.current <= 0) return
-            e.preventDefault()
-
-            const now = Date.now()
-            if (now - lastWheelTime.current < 400 || Math.abs(e.deltaY) < 8) return
-            lastWheelTime.current = now
-
-            if (down) cycleForward()
-            else cycleBackward()
-        }
-        window.addEventListener('wheel', onWheel, { passive: false })
-        return () => window.removeEventListener('wheel', onWheel)
-    }, [cycleForward, cycleBackward])
 
     /** Arrow keys — only when hovering. */
     useEffect(() => {
@@ -611,8 +590,8 @@ function CardDeck({ isDark }: { isDark: boolean }) {
             const useX = Math.abs(diffX) > Math.abs(diffY)
             const diff = useX ? diffX : diffY
             if (Math.abs(diff) < 30) return
-            if (diff > 0 && cycleRef.current < COUNT - 1) cycleForward()
-            else if (diff < 0 && cycleRef.current > 0) cycleBackward()
+            if (diff > 0) cycleForward()
+            else if (diff < 0) cycleBackward()
         }
         window.addEventListener('touchstart', onStart, { passive: true })
         window.addEventListener('touchend', onEnd, { passive: true })
@@ -681,6 +660,31 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                         Selected work
                     </h2>
                 </div>
+
+                {/* GitHub repo link */}
+                <a
+                    href="https://github.com/AlexStryer/stryer-portfolio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        fontSize: 10, letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: p.muted,
+                        fontFamily: '"DM Mono", monospace', fontWeight: 500,
+                        textDecoration: 'none',
+                        transition: 'color 0.3s ease',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = p.blue }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = p.muted }}
+                >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                    </svg>
+                    Source code ↗
+                </a>
             </div>
 
             {/* ── Card deck area ── */}
@@ -701,6 +705,8 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                 {/* Hover zone — wraps the background stage and card stack */}
                 <div
                     ref={cardStackRef}
+                    onMouseEnter={() => { isHovering.current = true }}
+                    onMouseLeave={() => { isHovering.current = false }}
                     style={{
                         position: 'relative',
                         width: isMobile ? 'min(92vw, 420px)' : 'min(88vw, 1280px)',
@@ -770,11 +776,54 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                                     isMobile={isMobile}
                                     expandedIndex={expandedIndex}
                                     setExpandedIndex={setExpandedIndex}
-                                    onHoverChange={(h) => { isHovering.current = h }}
                                 />
                             ))}
                         </div>
                     </div>
+
+                    {/* ── Navigation arrows ── */}
+                    {!isMobile && (
+                        <>
+                            <button
+                                onClick={() => cycleBackward()}
+                                aria-label="Previous project"
+                                style={{
+                                    position: 'absolute',
+                                    left: 10, top: '50%', transform: 'translateY(-50%)',
+                                    zIndex: 2,
+                                    width: 36, height: 36, borderRadius: 999,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(0,0,0,0.35)',
+                                    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                                    border: 'none', cursor: 'pointer',
+                                    opacity: 0.8,
+                                    color: '#fff', fontSize: 14,
+                                    transition: 'opacity 0.25s ease',
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
+                            >←</button>
+                            <button
+                                onClick={() => cycleForward()}
+                                aria-label="Next project"
+                                style={{
+                                    position: 'absolute',
+                                    right: 10, top: '50%', transform: 'translateY(-50%)',
+                                    zIndex: 2,
+                                    width: 36, height: 36, borderRadius: 999,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(0,0,0,0.35)',
+                                    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                                    border: 'none', cursor: 'pointer',
+                                    opacity: 0.8,
+                                    color: '#fff', fontSize: 14,
+                                    transition: 'opacity 0.25s ease',
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
+                            >→</button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -814,7 +863,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                     fontSize: 10, color: p.muted,
                     fontFamily: '"DM Sans", sans-serif', marginLeft: 4,
                 }}>
-                    {isMobile ? 'Swipe to browse' : 'Scroll to browse'}
+                    {isMobile ? 'Swipe to browse' : 'Click to browse'}
                 </span>
             </div>
         </section>
