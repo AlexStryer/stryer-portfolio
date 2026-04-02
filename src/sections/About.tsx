@@ -20,9 +20,30 @@ const INFRA = ['PostgreSQL', 'MariaDB', 'SQLite', 'AWS', 'REST APIs', 'Google Au
 const BUILT = ['Landing Pages', 'Web Apps', 'CRM Systems', 'Mobile Apps', 'Blogs', 'Unity Games']
 
 const VENTURES = [
-    { name: 'OASIS', role: 'Founder', desc: 'Audio, lighting, and DJ rental company. Organizes private events and corporate productions.' },
-    { name: 'Banu', role: 'Co-Founder', desc: 'Software development agency helping small businesses build an online presence.' },
-    { name: 'QUIO', role: 'Founder', desc: 'Marketing agency for local companies. Ad campaigns, creative design, branding, and strategy.' },
+    {
+        name: 'OASIS',
+        role: 'Founder',
+        desc: 'Audio, lighting, and DJ rental company. Organizes private events and corporate productions.',
+        image: 'about-oasis-panel.png',
+        bg: '#000000',
+        aspectRatio: '1440 / 540',
+    },
+    {
+        name: 'Banu',
+        role: 'Co-Founder',
+        desc: 'Software development agency helping small businesses build an online presence.',
+        image: 'about-banu-panel.png',
+        bg: '#BF5B6A',
+        aspectRatio: '1440 / 360',
+    },
+    {
+        name: 'QUIO',
+        role: 'Founder',
+        desc: 'Marketing agency for local companies. Ad campaigns, creative design, branding, and strategy.',
+        image: 'about-quio-panel.png',
+        bg: '#9db9d0',
+        aspectRatio: '1440 / 180',
+    },
 ]
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -73,6 +94,11 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
     const containerRef = useRef<HTMLDivElement>(null)
     const [dragging, setDragging] = useState(false)
     const [hinted, setHinted] = useState(false)
+    const [activeVenture, setActiveVenture] = useState<number | null>(null)
+
+    const venturesColumnRef = useRef<HTMLDivElement>(null)
+    const ventureRowRefs = useRef<Array<HTMLDivElement | null>>([])
+    const [rowTops, setRowTops] = useState<number[]>([])
 
     // Motion values for the split position
     const rawPct = useMotionValue(68)
@@ -99,6 +125,41 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
         const rect = el.getBoundingClientRect()
         return Math.max(2, Math.min(98, ((clientX - rect.left) / rect.width) * 100))
     }, [])
+
+    // ── Measure venture row positions (desktop only) ──────────────────────────
+    useEffect(() => {
+        if (isMobile) return
+
+        const measure = () => {
+            const col = venturesColumnRef.current
+            if (!col) return
+            const colRect = col.getBoundingClientRect()
+
+            const tops = ventureRowRefs.current.map((row) => {
+                if (!row) return 0
+                const rowRect = row.getBoundingClientRect()
+                return rowRect.top - colRect.top
+            })
+
+            setRowTops(tops)
+        }
+
+        measure()
+
+        const onResize = () => measure()
+        window.addEventListener('resize', onResize)
+
+        let observer: ResizeObserver | null = null
+        if (venturesColumnRef.current && 'ResizeObserver' in window) {
+            observer = new ResizeObserver(() => measure())
+            observer.observe(venturesColumnRef.current)
+        }
+
+        return () => {
+            window.removeEventListener('resize', onResize)
+            observer?.disconnect()
+        }
+    }, [isMobile])
 
     // ── Drag handlers ─────────────────────────────────────────────
     useEffect(() => {
@@ -138,6 +199,8 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
     // Layout config
     const innerGrid = isMobile ? '1fr' : '1fr 1fr'
     const innerPad = isMobile ? '0 clamp(20px, 4vw, 32px)' : '0 clamp(28px, 4vw, 56px)'
+
+    const activePanelTop = activeVenture !== null ? rowTops[activeVenture] ?? 0 : 0
 
     return (
         <div
@@ -190,7 +253,7 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                             fontFamily: '"DM Sans", sans-serif',
                             transition: 'color 0.4s ease',
                         }}>
-                            I don't just write code for other people's ideas.
+                            I don&apos;t just write code for other people&apos;s ideas.
                             I start things. I find problems, build teams, and
                             bring products to market.
                         </p>
@@ -240,47 +303,107 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
 
                     {/* Ventures column (desktop only) */}
                     {!isMobile && (
-                        <div style={{
-                            display: 'flex', flexDirection: 'column',
-                            justifyContent: 'center',
-                            padding: innerPad,
-                        }}>
-                            <SectionLabel
-                                text="Ventures"
-                                color={p.ent.label}
-                                lineColor={p.ent.bd}
-                                font='"Playfair Display", Georgia, serif'
-                            />
+                        <div
+                            ref={venturesColumnRef}
+                            onMouseLeave={() => setActiveVenture(null)}
+                            style={{
+                                position: 'relative',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                padding: innerPad,
+                                overflow: 'hidden',
+                            }}
+                        >
+                            <AnimatePresence>
+                                {activeVenture !== null && (
+                                    <motion.div
+                                        key={`panel-${activeVenture}`}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.2, ease: EASE }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: activePanelTop,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            zIndex: 0,
+                                            overflow: 'hidden',
+                                            pointerEvents: 'none',
+                                            background: VENTURES[activeVenture].bg,
+                                        }}
+                                    >
+                                        <img
+                                            src={`${import.meta.env.BASE_URL}${VENTURES[activeVenture].image}`}
+                                            alt=""
+                                            aria-hidden="true"
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                objectPosition: 'center center',
+                                                display: 'block',
+                                            }}
+                                            onError={(e) => {
+                                                ; (e.target as HTMLImageElement).style.display = 'none'
+                                            }}
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
-                            {VENTURES.map((v, i) => (
-                                <div key={v.name} style={{
-                                    padding: '16px 0',
-                                    borderTop: i > 0 ? `1px solid ${p.ent.bd}` : 'none',
-                                    transition: 'border-color 0.4s ease',
-                                }}>
-                                    <div style={{ marginBottom: 4 }}>
-                                        <span style={{
-                                            fontSize: 'clamp(16px, 1.4vw, 19px)',
-                                            fontFamily: '"Playfair Display", Georgia, serif',
-                                            fontWeight: 400, color: p.ent.h,
-                                            transition: 'color 0.4s ease',
-                                        }}>{v.name}</span>
-                                        <span style={{
-                                            fontSize: 10, letterSpacing: '0.04em',
-                                            color: p.ent.dim,
-                                            fontFamily: '"DM Sans", sans-serif',
-                                            fontWeight: 500, marginLeft: 10,
-                                            transition: 'color 0.4s ease',
-                                        }}>{v.role}</span>
-                                    </div>
-                                    <p style={{
-                                        fontSize: 13.5, lineHeight: 1.55,
-                                        color: p.ent.p, margin: 0, maxWidth: 340,
-                                        fontFamily: '"DM Sans", sans-serif',
-                                        transition: 'color 0.4s ease',
-                                    }}>{v.desc}</p>
-                                </div>
-                            ))}
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <SectionLabel
+                                    text="Ventures"
+                                    color={p.ent.label}
+                                    lineColor={p.ent.bd}
+                                    font='"Playfair Display", Georgia, serif'
+                                />
+
+                                {VENTURES.map((v, i) => {
+                                    const oasisMode = activeVenture === 0
+
+                                    return (
+                                        <div
+                                            key={v.name}
+                                            ref={(el) => { ventureRowRefs.current[i] = el }}
+                                            onMouseEnter={() => setActiveVenture(i)}
+                                            style={{
+                                                padding: '16px 0',
+                                                borderTop: i > 0 ? `1px solid ${p.ent.bd}` : 'none',
+                                                transition: 'border-color 0.4s ease',
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            <div style={{ marginBottom: 4 }}>
+                                                <span style={{
+                                                    fontSize: 'clamp(16px, 1.4vw, 19px)',
+                                                    fontFamily: '"Playfair Display", Georgia, serif',
+                                                    fontWeight: 400,
+                                                    color: oasisMode ? '#ffffff' : p.ent.h,
+                                                    transition: 'color 0.4s ease',
+                                                }}>{v.name}</span>
+                                                <span style={{
+                                                    fontSize: 10, letterSpacing: '0.04em',
+                                                    color: oasisMode ? 'rgba(255,255,255,0.72)' : p.ent.dim,
+                                                    fontFamily: '"DM Sans", sans-serif',
+                                                    fontWeight: 500, marginLeft: 10,
+                                                    transition: 'color 0.4s ease',
+                                                }}>{v.role}</span>
+                                            </div>
+                                            <p style={{
+                                                fontSize: 13.5, lineHeight: 1.55,
+                                                color: oasisMode ? 'rgba(255,255,255,0.92)' : p.ent.p,
+                                                margin: 0, maxWidth: 340,
+                                                fontFamily: '"DM Sans", sans-serif',
+                                                transition: 'color 0.4s ease',
+                                            }}>{v.desc}</p>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
                     )}
                 </motion.div>
@@ -340,7 +463,7 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                         </p>
 
                         <SectionLabel
-                            text="What I've built"
+                            text="What I&apos;ve built"
                             color={p.eng.label}
                             lineColor={p.eng.line}
                             font='"DM Mono", monospace'
