@@ -99,7 +99,7 @@ export default function Hero({ theme, onRocketClick }: HeroProps) {
                         padding-top: 22vw !important;
                     }
                     .hero-bottom {
-                        padding: 0 24px 56px !important;
+                        padding: 0 24px 36px !important;
                     }
                     .hero-subtitle-row {
                         flex-direction: column !important;
