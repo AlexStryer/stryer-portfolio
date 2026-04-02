@@ -245,7 +245,7 @@ export default function Hero({ theme, onRocketClick }: HeroProps) {
                                 width: 4, height: 4, borderRadius: '50%',
                                 background: p.blue, flexShrink: 0, opacity: 0.6,
                             }} />
-                            Software Engineer · Frontend & Full-Stack
+                            Software Engineer · Full-Stack
                         </span>
                     </motion.div>
                 </div>

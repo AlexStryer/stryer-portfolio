@@ -457,9 +457,10 @@ function SplitPanel({ isDark }: { isDark: boolean }) {
                             fontFamily: '"DM Sans", sans-serif',
                             transition: 'color 0.4s ease',
                         }}>
-                            Full-stack engineer focused on building real products.
-                            I ship fast, clean interfaces that people actually use,
-                            from client sites to internal tools.
+                            I build full-stack products.
+                            The kind people open twice.
+                            From small client sites to internal tools.
+                            I just like when things work well.
                         </p>
 
                         <SectionLabel
