@@ -15,6 +15,7 @@ interface Project {
     details: string[]
     stack: string[]
     image: string
+    background: string
     link?: string
 }
 
@@ -64,6 +65,7 @@ const PROJECTS: Project[] = [
         ],
         stack: ['React', 'TypeScript', 'Tailwind'],
         image: 'project-banu.png',
+        background: 'background-banu.png',
         link: 'https://banu.com.mx',
     },
     {
@@ -77,6 +79,7 @@ const PROJECTS: Project[] = [
         ],
         stack: ['React', 'TypeScript', 'Tailwind'],
         image: 'project-excalibur.png',
+        background: 'background-excalibur.png',
     },
     {
         title: 'Habitree – Habit Tracker',
@@ -90,6 +93,7 @@ const PROJECTS: Project[] = [
         ],
         stack: ['Swift', 'AWS', 'Figma'],
         image: 'project-habitree.png',
+        background: 'background-habitree.png',
     },
     {
         title: 'Leadly',
@@ -102,6 +106,7 @@ const PROJECTS: Project[] = [
         ],
         stack: ['Django', 'SQLite', 'HTMX', 'JavaScript'],
         image: 'project-socialflash.png',
+        background: 'background-leadly.png',
     },
     {
         title: 'Dehesa San Isidro',
@@ -115,6 +120,7 @@ const PROJECTS: Project[] = [
         ],
         stack: ['React', 'TypeScript', 'Tailwind', 'GitHub Pages', 'GitHub Actions'],
         image: 'project-dis.png',
+        background: 'background-dsi.png',
     },
     {
         title: 'Flash Point: Simpsons Edition',
@@ -128,6 +134,7 @@ const PROJECTS: Project[] = [
         ],
         stack: ['Unity', 'Python', 'C#'],
         image: 'project-flashpoint.png',
+        background: 'background-flashpoint.png',
     },
 ]
 
@@ -617,6 +624,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
 
     const stackX = isMobile ? STACK_X_MOBILE : STACK_X_DESKTOP
     const stackY = isMobile ? STACK_Y_MOBILE : STACK_Y_DESKTOP
+    const activeProject = PROJECTS[order[0]]
 
     // ── Render ────────────────────────────────────────────────────
 
@@ -690,32 +698,82 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                     minHeight: isMobile ? 'clamp(380px, 56vh, 480px)' : 'clamp(440px, 52vh, 580px)',
                 }}
             >
-                {/* Hover zone — wraps the card stack + its offset margins */}
+                {/* Hover zone — wraps the background stage and card stack */}
                 <div
                     ref={cardStackRef}
-                    style={{ position: 'relative' }}
-                >
-                    <div style={{
+                    style={{
                         position: 'relative',
-                        width: isMobile ? 'min(88vw, 380px)' : 'min(84vw, 920px)',
-                        height: isMobile ? 'clamp(340px, 50vh, 440px)' : 'clamp(340px, 36vw, 440px)',
-                        marginRight: isMobile ? COUNT * stackX : COUNT * stackX + 20,
-                        marginTop: isMobile ? COUNT * Math.abs(stackY) + 8 : COUNT * Math.abs(stackY) + 20,
-                    }}>
-                        {PROJECTS.map((project, projectIndex) => (
-                            <ProjectCard
-                                key={`card-${projectIndex}`}
-                                project={project}
-                                projectIndex={projectIndex}
-                                depth={getDepth(projectIndex)}
-                                zIndex={getZIndex(projectIndex)}
-                                isDark={isDark}
-                                isMobile={isMobile}
-                                expandedIndex={expandedIndex}
-                                setExpandedIndex={setExpandedIndex}
-                                onHoverChange={(h) => { isHovering.current = h }}
+                        width: isMobile ? 'min(92vw, 420px)' : 'min(88vw, 1280px)',
+                        height: isMobile ? 'clamp(420px, 62vh, 560px)' : 'clamp(420px, 46vw, 760px)',
+                    }}
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeProject.background}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.4, ease: EASE }}
+                            style={{
+                                position: 'absolute',
+                                inset: 0,
+                                zIndex: 0,
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 18 : 24,
+                                background: p.imgBg,
+                            }}
+                        >
+                            <img
+                                src={`${import.meta.env.BASE_URL}${activeProject.background}`}
+                                alt=""
+                                aria-hidden="true"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    objectPosition: 'center',
+                                    display: 'block',
+                                }}
+                                onError={(e) => {
+                                    ; (e.target as HTMLImageElement).style.display = 'none'
+                                }}
                             />
-                        ))}
+                        </motion.div>
+                    </AnimatePresence>
+
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            zIndex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: isMobile ? '20px 12px 54px' : '32px 24px 70px',
+                        }}
+                    >
+                        <div style={{
+                            position: 'relative',
+                            width: isMobile ? 'min(88vw, 380px)' : 'min(84vw, 920px)',
+                            height: isMobile ? 'clamp(340px, 50vh, 440px)' : 'clamp(340px, 36vw, 440px)',
+                            marginRight: isMobile ? COUNT * stackX : COUNT * stackX + 20,
+                            marginTop: isMobile ? COUNT * Math.abs(stackY) + 8 : COUNT * Math.abs(stackY) + 20,
+                        }}>
+                            {PROJECTS.map((project, projectIndex) => (
+                                <ProjectCard
+                                    key={`card-${projectIndex}`}
+                                    project={project}
+                                    projectIndex={projectIndex}
+                                    depth={getDepth(projectIndex)}
+                                    zIndex={getZIndex(projectIndex)}
+                                    isDark={isDark}
+                                    isMobile={isMobile}
+                                    expandedIndex={expandedIndex}
+                                    setExpandedIndex={setExpandedIndex}
+                                    onHoverChange={(h) => { isHovering.current = h }}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
