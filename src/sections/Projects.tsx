@@ -697,9 +697,9 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                 >
                     <div style={{
                         position: 'relative',
-                        width: isMobile ? 'min(94vw, 400px)' : 'min(84vw, 920px)',
+                        width: isMobile ? 'min(88vw, 380px)' : 'min(84vw, 920px)',
                         height: isMobile ? 'clamp(340px, 50vh, 440px)' : 'clamp(340px, 36vw, 440px)',
-                        marginRight: isMobile ? 0 : COUNT * stackX + 20,
+                        marginRight: isMobile ? COUNT * stackX : COUNT * stackX + 20,
                         marginTop: isMobile ? COUNT * Math.abs(stackY) + 8 : COUNT * Math.abs(stackY) + 20,
                     }}>
                         {PROJECTS.map((project, projectIndex) => (
@@ -726,7 +726,7 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                 bottom: isMobile ? 'clamp(12px, 2vh, 20px)' : 'clamp(16px, 2.5vh, 28px)',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                display: 'flex', gap: isMobile ? 4 : 8, alignItems: 'center',
+                display: 'flex', gap: 8, alignItems: 'center',
             }}>
                 {PROJECTS.map((_, i) => {
                     const isActive = order[0] === i
@@ -736,14 +736,15 @@ function CardDeck({ isDark }: { isDark: boolean }) {
                             onClick={() => goToCard(i)}
                             aria-label={`Go to project ${i + 1}`}
                             style={{
-                                width: isActive ? (isMobile ? 28 : 24) : (isMobile ? 10 : 6),
-                                height: isMobile ? 10 : 6,
-                                borderRadius: isMobile ? 5 : 3,
+                                width: isActive ? 24 : 6,
+                                height: 6,
+                                borderRadius: 3,
                                 background: isActive ? p.blue : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
                                 transition: 'all 0.4s',
                                 cursor: 'pointer',
                                 border: 'none',
-                                padding: isMobile ? '10px 0' : 0,
+                                /* Invisible padding for bigger touch target on mobile */
+                                padding: isMobile ? '12px 6px' : 0,
                                 boxSizing: 'content-box',
                                 outline: 'none',
                                 WebkitTapHighlightColor: 'transparent',
