@@ -99,7 +99,7 @@ export default function Hero({ theme, onRocketClick }: HeroProps) {
                         padding-top: 22vw !important;
                     }
                     .hero-bottom {
-                        padding: 0 24px 28px !important;
+                        padding: 0 24px 56px !important;
                     }
                     .hero-subtitle-row {
                         flex-direction: column !important;
@@ -115,7 +115,7 @@ export default function Hero({ theme, onRocketClick }: HeroProps) {
                 ref={sectionRef}
                 style={{
                     position: 'relative',
-                    height: '100vh',
+                    height: '100svh',
                     minHeight: 560,
                     background: p.bg,
                     color: p.fg,

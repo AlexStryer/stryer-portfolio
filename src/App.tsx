@@ -8,7 +8,6 @@ import Hero from './sections/Hero'
 import About from './sections/About'
 import Projects from './sections/Projects'
 import Contact from './sections/Contact'
-
 /**
  * Root application component.
  *
@@ -20,10 +19,8 @@ export default function App() {
   const { theme, toggleTheme } = useTheme()
   const [introComplete, setIntroComplete] = useState(false)
   const [replayAnimation, setReplayAnimation] = useState(false)
-
   const isDark = theme === 'dark'
   const p = pal(isDark)
-
   return (
     <div style={{
       backgroundColor: p.bg,
@@ -37,12 +34,11 @@ export default function App() {
         triggerReplay={replayAnimation}
         onReplayDone={() => setReplayAnimation(false)}
       />
-
       {/* Main site — revealed after intro animation finishes */}
       {introComplete && (
         <>
+          <div id="top" />
           <Navbar theme={theme} onToggleTheme={toggleTheme} />
-
           <main
             style={{
               position: 'relative',
@@ -60,7 +56,6 @@ export default function App() {
             <Projects theme={theme} />
             <Contact theme={theme} />
           </main>
-
           <Footer theme={theme} />
         </>
       )}

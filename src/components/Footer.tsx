@@ -7,7 +7,7 @@ interface FooterProps {
 }
 
 const GLYPHS = '░▒▓█╬═╦╠╩01!@#$%&?'
-const SECRET = 'Built with ☕ & too many late nights'
+const SECRET = 'Built with claude & too many late nights...'
 
 const NAV_LINKS = [
     { label: 'About', id: 'about' },
@@ -75,7 +75,7 @@ export default function Footer({ theme }: FooterProps) {
     }, [])
 
     const scrollToTop = useCallback(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        document.getElementById('top')?.scrollIntoView({ behavior: 'smooth' })
     }, [])
 
     return (
@@ -112,7 +112,7 @@ export default function Footer({ theme }: FooterProps) {
                     {/* ── Left: brand + copyright ── */}
                     <div>
                         <button
-                            onClick={() => scrollToTop()}
+                            onClick={scrollToTop}
                             style={{
                                 fontSize: 14, fontWeight: 700,
                                 letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -246,7 +246,7 @@ export default function Footer({ theme }: FooterProps) {
 
                         {/* Back to top */}
                         <button
-                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            onClick={scrollToTop}
                             className="footer-top"
                             style={{
                                 marginTop: 20,
